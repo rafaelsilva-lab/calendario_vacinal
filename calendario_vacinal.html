@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atividade: Calendário Nacional de Vacinação 2025</title>
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #0056a0;
+            border-bottom: 2px solid #0056a0;
+            padding-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls input[type="text"],
+        .controls select,
+        .controls button {
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        .controls input[type="text"] {
+            flex-grow: 2;
+            flex-shrink: 1;
+            flex-basis: 250px; /* ALTERADO DE min-width */
+        }
+
+        .controls select {
+            flex-grow: 1;
+            flex-shrink: 1;
+            flex-basis: 200px; /* ALTERADO DE min-width */
+            background-color: #fff;
+            
+            /* --- CORREÇÃO PARA IPHONE (iOS) --- */
+            /* Força o Safari a renderizar o dropdown corretamente */
+            -webkit-appearance: menulist;
+            appearance: menulist;
+            /* ------------------------------- */
+        }
+
+        .controls button {
+            flex-grow: 1;
+            flex-shrink: 1;
+            flex-basis: 180px; /* ALTERADO DE min-width */
+            background-color: #1e8a31;
+            color: white;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .controls button:hover {
+            background-color: #176925;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 14px;
+            text-align: left;
+            vertical-align: top;
+            font-size: 14px;
+        }
+
+        th {
+            background-color: #0056a0;
+            color: white;
+            font-size: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        td {
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Calendário Nacional de Vacinação 2025</h1>
+        <p>Atividade de construção do calendário vacinal com base nos dados do Ministério da Saúde.</p>
+
+        <div class="controls">
+            <input type="text" id="searchInput" placeholder="Buscar vacina, doença, via de adm...">
+            <select id="ageSelect">
+                <option value="todas">Todas as faixas etárias</option>
+                <option value="criança">Criança</option>
+                <option value="adolescente">Adolescente / Jovem</option>
+                <option value="gestante">Gestante</option>
+                <option value="adulto">Adulto</option>
+                <option value="idoso">Idoso</option>
+            </select>
+            <button id="exportButton">Exportar para CSV (Excel)</button>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Vacina</th>
+                        <th>Proteção Contra</th>
+                        <th>Faixa Etária</th>
+                        <th>Esquema / Doses</th>
+                        <th>Intervalo</th>
+                        <th>Volume/Dosagem</th>
+                        <th>Via de Administração</th>
+                    </tr>
+                </thead>
+                <tbody id="vaccineTableBody">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // 1. Base de Dados das Vacinas (extraída dos PDFs)
+        const vaccineData = [
+            {
+                vacina: "BCG (atenuada)",
+                protecao: "Formas graves de tuberculose (miliar e meningea) e complicações.",
+                faixa: "Criança (0 a 4 anos, 11 meses e 29 dias).",
+                esquema: "1 dose ao nascer, ainda na maternidade.",
+                intervalo: "Dose única.",
+                volume: "RN até 11m29d: 0,05 mL;\nA partir de 1 ano: 0,1 mL.",
+                via: "ID (Intradérmica)."
+            },
+            {
+                vacina: "Hepatite B (recombinante) - HB",
+                protecao: "Infecções causadas pelo vírus da hepatite B e suas complicações (Hepatite B, Hepatite D).",
+                faixa: "Todas as faixas etárias (Criança, Adolescente, Gestante, Adulto, Idoso).",
+                esquema: "Crianças: 1 dose ao nascer.\nDemais: Iniciar ou completar 3 doses, de acordo com a situação vacinal.",
+                intervalo: "Ao nascer (crianças).\nDemais (esquema 3 doses): 1 mês entre 1ª e 2ª dose; 6 meses entre 1ª e 3ª dose.",
+                volume: "Varia conforme laboratório e idade (e.g., 0,5 mL ou 1,0 mL).",
+                via: "IM (Intramuscular)."
+            },
+            {
+                vacina: "Penta (DTP-Hib-HB)",
+                protecao: "Difteria, tétano, coqueluche, hepatite B, infecções causadas pelo Haemophilus influenzae b e suas complicações.",
+                faixa: "Criança (2 meses a 6 anos, 11 meses e 29 dias).",
+                esquema: "3 doses: 1ª aos 2 meses, 2ª aos 4 meses, 3ª aos 6 meses.",
+                intervalo: "60 dias (mínimo 30 dias).",
+                volume: "0,5 mL.",
+                via: "IM (Intramuscular)."
+            },
+            {
+                vacina: "VIP (Poliomielite inativada)",
+                protecao: "Poliomielite (paralisia infantil) e suas complicações, causada por poliovírus tipos 1, 2 e 3.",
+                faixa: "Criança (2 meses a 4 anos, 11 meses e 29 dias).",
+                esquema: "3 doses (2, 4, 6 meses) + 1 dose de reforço (15 meses).",
+                intervalo: "Básico: 60 dias (mín 30 dias).\nReforço: 9 meses após 3ª dose (mín 6 meses).",
+                volume: "0,5 mL.",
+                via: "IM (Intramuscular)."
+            },
+            {
+                vacina: "VORH (Rotavírus humano)",
+                protecao: "Gastrenterite viral, causada pelo rotavírus sorogrupo G1, e suas complicações.",
+                faixa: "Criança (1ª dose de 1 mês e 15 dias a 11 meses e 29 dias; 2ª dose de 3 meses e 15 dias a 23 meses e 29 dias).",
+                esquema: "2 doses: 1ª aos 2 meses, 2ª aos 4 meses.",
+                intervalo: "60 dias (mínimo 30 dias).",
+                volume: "1,5 mL.",
+                via: "Oral."
+            },
+            {
+                vacina: "VPC10 (Pneumocócica 10-valente)",
+                protecao: "Doenças pneumocócicas invasivas (otite média aguda, sinusite, pneumonia, meningite, etc.).",
+                faixa: "Criança (2 meses a 4 anos, 11 meses e 29 dias).",
+                esquema: "2 doses (2, 4 meses) + 1 dose de reforço (12 meses).",
+                intervalo: "Básico: 60 dias (mín 30 dias).\nReforço: 8 meses após 2ª dose (mín 60 dias).",
+                volume: "0,5 mL.",
+                via: "IM (Intramuscular)."
+            },
+            {
+                vacina: "Men C (Meningocócica C)",
+                protecao: "Doença meningocócica (meningite, etc.) causada pela N. menigitidis sorogrupo C.",
+                faixa: "Criança (3 meses a 4 anos, 11 meses e 29 dias).",
+                esquema: "2 doses (3, 5 meses) + 1 dose de reforço (12 meses, preferencialmente com MenACWY).",
+                intervalo: "Básico: 60 dias (mín 30 dias).\nReforço: 7 meses após 2ª dose (mín 60 dias).",
+                volume: "0,5 mL.",
+                via: "IM (Intramuscular)."
+            },
+            {
+                vacina: "Influenza (trivalente, inativada) - INF3",
+                protecao: "Influenza (gripe), causada pelo Myxovirus influenzae, e suas complicações.",
+                faixa: "Crianças (6 meses a 5a, 11m e 29d).\nGestantes (qualquer fase).\nIdosos (a partir de 60 anos).",
+                esquema: "Crianças (primovacinação): 2 doses.\nDemais ou com histórico: 1 dose anual com a vacina da temporada.",
+                intervalo: "4 semanas (para esquema de 2 doses em crianças).",
+                volume: "6 meses a 2 anos: 0,25 mL.\nA partir de 3 anos: 0,5 mL.",
+                via: "IM (Intramuscular) ou SC (Subcutânea)."
+            },
+            {
+                vacina: "Covid-19",
+                protecao: "Formas graves e óbitos por covid-19, causadas pelo vírus SARS-CoV-2, e complicações.",
+                faixa: "Crianças (a partir de 6 meses).\nGestantes (qualquer fase).\nIdosos (a partir de 60 anos).",
+                esquema: "Crianças: 2 ou 3 doses (varia por vacina).\nGestantes: 1 dose a cada gestação.\nIdosos: 1 dose semestral.",
+                intervalo: "Crianças: 4 a 8 semanas (depende da vacina).\nGestantes/Idosos: 6 meses da última dose.",
+                volume: "Varia por vacina e idade (e.g., 0,2mL, 0,25mL, 0,3mL, 0,5mL).",
+                via: "IM (Intramuscular)."
+            },
+            {
+                vacina: "Febre Amarela (atenuada) - VFA",
+                protecao: "Febre amarela, causada por arbovírus do gênero Flavivírus, e complicações.",
+                faixa: "Crianças (>=9m), Adolescentes/Jovens (até 59a), Adultos (até 59a).\nIdosos (>=60a, sob avaliação de risco).",
+                esquema: "Crianças: 1 dose (9 meses) + 1 reforço (4 anos).\nDemais (até 59a): Dose única (se não vacinado ou vacinado >=5a); 1 reforço (se vacinado <5a).\nIdosos: 1 dose (se recomendado).",
+                intervalo: "Reforço aos 4 anos (crianças). Mín. 30 dias entre doses (se aplicável).",
+                volume: "0,5 mL.",
+                via: "SC (Subcutânea)."
+            },
+            {
+                vacina: "MenACWY (Meningocócica ACWY)",
+                protecao: "Doença meningocócica (meningite, etc.) causadas pela N. menigitidis sorogrupos A, C, W, Y.",
+                faixa: "Crianças (12 meses a 4a, 11m e 29d).\nAdolescentes (11 a 14 anos, 11m e 29d).",
+                esquema: "Crianças: 1 dose (como reforço da Men C).\nAdolescentes: 1 dose.",
+                intervalo: "Crianças: Mínimo 60 dias após 2ª dose da Men C.",
+                volume: "0,5 mL.",
+                via: "IM (Intramuscular)."
+            },
+            {
+                vacina: "SCR (Tríplice Viral)",
+                protecao: "Sarampo, caxumba, rubéola e complicações.",
+                faixa: "Crianças (>=12m), Adolescentes/Jovens (até 29a), Adultos (30-59a).\nIdosos (somente trabalhadores de saúde).",
+                esquema: "Crianças: 1 dose (12 meses).\n5-29 anos: 2 doses (atualizar).\n30-59 anos: 1 dose (atualizar).\nTrab. Saúde: 2 doses (atualizar).",
+                intervalo: "30 dias (entre doses, se aplicável).",
+                volume: "0,5 mL.",
+                via: "SC (Subcutânea)."
+            },
+            {
+                vacina: "SCRV (Tetraviral)",
+                protecao: "Sarampo, caxumba, rubéola, varicela (Varicella-zoster) e complicações.",
+                faixa: "Criança (15 meses a 4 anos, 11 meses e 29 dias).",
+                esquema: "1 dose aos 15 meses de idade. (Corresponde à 2ª dose de SCR e 1ª de Varicela).",
+                intervalo: "Mínimo 30 dias após 1ª dose de SCR.",
+                volume: "0,5 mL.",
+                via: "SC (Subcutânea)."
+            },
+            {
+                vacina: "Hepatite A (inativada) - HAinf",
+                protecao: "Hepatite A, causada pelo vírus hepatite A, e complicações.",
+                faixa: "Criança (15 meses a 4 anos, 11 meses e 29 dias).",
+                esquema: "1 dose aos 15 meses de idade.",
+                intervalo: "Dose única.",
+                volume: "0,5 mL.",
+                via: "IM (Intramuscular)."
+            },
+            {
+                vacina: "DTP (Tríplice Bacteriana)",
+                protecao: "Difteria, tétano, coqueluche (B. pertussis) e suas complicações.",
+                faixa: "Criança (15 meses a 6 anos, 11 meses e 29 dias).",
+                esquema: "2 doses de reforço (Reforço da Penta):\n1º reforço: aos 15 meses de idade.\n2º reforço: aos 4 anos de idade.",
+                intervalo: "1º ref: 6-12 meses após 3ª dose da Penta.\n2º ref: 2 anos e 9 meses após 1º reforço (mín 6 meses).",
+                volume: "0,5 mL.",
+                via: "IM (Intramuscular)."
+            },
+            {
+                vacina: "Varicela (atenuada) - VZ",
+                protecao: "Varicela (catapora), causada por vírus Varicella-zoster, e suas complicações.",
+                faixa: "Crianças (4 a 6a, 11m e 29d).\nPop. Indígena e Trab. Saúde (todas as faixas).",
+                esquema: "Crianças: 1 dose (aos 4 anos) (corresponde à 2ª dose do esquema, 1ª foi com SCRV).\nDemais grupos: 2 doses (se sem comprovação).",
+                intervalo: "30 dias (para esquema de 2 doses).",
+                volume: "0,5 mL.",
+                via: "SC (Subcutânea)."
+            },
+            {
+                vacina: "VPP23 (Pneumocócica 23-valente)",
+                protecao: "Doenças pneumocócicas invasivas causadas por 23 sorotipos de S. pneumoniae.",
+                faixa: "População indígena (a partir de 5 anos).\nIdosos acamados e/ou institucionalizados (a partir de 60 anos).",
+                esquema: "2 doses (na ausência de histórico vacinal com vacina pneumocócica conjugada).",
+                intervalo: "5 anos.",
+                volume: "0,5 mL.",
+                via: "IM (Intramuscular)."
+            },
+            {
+                vacina: "dT (Dupla Adulto)",
+                protecao: "Difteria (C. diphtheriae), tétano (C. tetani) e suas complicações.",
+                faixa: "A partir de 7 anos (Criança, Adolescente, Adulto, Idoso).\nGestantes (para iniciar ou completar esquema).",
+                esquema: "Iniciar ou completar esquema básico de 3 doses (se incompleto).\n1 dose de reforço a cada 10 anos (se completo).",
+                intervalo: "Básico: 60 dias (mín 30 dias).\nReforço: 10 anos (ou 5 anos em caso de risco).",
+                volume: "0,5 mL.",
+                via: "IM (Intramuscular)."
+            },
+            {
+                vacina: "HPV4 (Papilomavírus humano 6, 11, 16, 18)",
+                protecao: "Infecções causadas pelo HPV (sorotipos 6, 11, 16, 18), levando a verrugas anogenitais e desenvolvimento de câncer (colo de útero, ânus, pênis, etc.).",
+                faixa: "Crianças/Adolescentes (9 anos a 14 anos, 11 meses e 29 dias).\n(Grupos prioritários, ver IN).",
+                esquema: "1 dose.",
+                intervalo: "Dose única (para esta faixa etária).",
+                volume: "0,5 mL.",
+                via: "IM (Intramuscular)."
+            },
+            {
+                vacina: "dTpa (Tríplice Bacteriana Acelular tipo adulto)",
+                protecao: "Difteria, tétano, coqueluche (B. pertussis) e suas complicações.",
+                faixa: "Gestantes (a partir da 20ª semana).\nTrabalhadores da saúde (Adolescente, Adulto, Idoso).",
+                esquema: "Gestantes: 1 dose a CADA gestação.\nTrab. Saúde: 1 dose e reforços a cada 10 anos com dTpa.",
+                intervalo: "Gestantes: A partir da 20ª semana.\nTrab. Saúde: Reforço a cada 10 anos.",
+                volume: "0,5 mL.",
+                via: "IM (Intramuscular)."
+            }
+        ];
+
+
+        // 2. Elementos do DOM
+        const searchInput = document.getElementById('searchInput');
+        const ageSelect = document.getElementById('ageSelect');
+        const tableBody = document.getElementById('vaccineTableBody');
+        const exportButton = document.getElementById('exportButton');
+
+        // 3. Função para Renderizar a Tabela
+        function renderTable(dataToRender) {
+            tableBody.innerHTML = ''; // Limpa a tabela
+
+            if (dataToRender.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="7">Nenhuma vacina encontrada para os filtros aplicados.</td></tr>';
+                return;
+            }
+
+            dataToRender.forEach(vaccine => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${vaccine.vacina}</td>
+                    <td>${vaccine.protecao}</td>
+                    <td>${vaccine.faixa}</td>
+                    <td>${vaccine.esquema}</td>
+                    <td>${vaccine.intervalo}</td>
+                    <td>${vaccine.volume}</td>
+                    <td>${vaccine.via}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // 4. Função para Filtrar os Dados
+        function filterData() {
+            const searchTerm = searchInput.value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const ageGroupRaw = ageSelect.value;
+            const ageGroup = ageGroupRaw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
+
+            let filteredData = vaccineData;
+
+            if (ageGroupRaw !== 'todas') { 
+                filteredData = filteredData.filter(vaccine => {
+                    const faixaNormalizada = vaccine.faixa.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
+                    return faixaNormalizada.includes(ageGroup) || faixaNormalizada.includes("todas as faixas");
+                });
+            }
+
+            if (searchTerm) {
+                filteredData = filteredData.filter(vaccine => {
+                    const allValues = Object.values(vaccine).join(' ').toLowerCase();
+                    const allValuesNormalizada = allValues.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    return allValuesNormalizada.includes(searchTerm);
+                });
+            }
+
+            renderTable(filteredData);
+        }
+
+        // 5. Função para Exportar para CSV
+        function exportToCSV() {
+            const headers = Array.from(document.querySelectorAll('table th')).map(th => `"${th.textContent}"`).join(',');
+            const rows = Array.from(document.querySelectorAll('table tbody tr'));
+            
+            const cleanText = (text) => {
+                let cleaned = text.replace(/"/g, '""'); 
+                return `"${cleaned}"`;
+            };
+
+            const csvContent = rows.map(row => {
+                const cells = Array.from(row.querySelectorAll('td'));
+                return cells.map(cell => cleanText(cell.textContent)).join(',');
+            }).join('\n');
+
+            const fullCsv = headers + '\n' + csvContent;
+
+            const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), fullCsv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            if (link.download !== undefined) { 
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'calendario_vacinal_2025.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        // 6. Adiciona os Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTable(vaccineData); // Renderiza a tabela inicial
+
+            searchInput.addEventListener('keyup', filterData);
+            ageSelect.addEventListener('change', filterData);
+            exportButton.addEventListener('click', exportToCSV);
+        });
+    </script>
+
+</body>
+</html>
